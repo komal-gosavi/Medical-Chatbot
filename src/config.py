@@ -44,17 +44,18 @@ def load_config() -> dict:
         "PINECONE_CLOUD"   : os.environ.get("PINECONE_CLOUD", "aws"),
         "PINECONE_REGION"  : os.environ.get("PINECONE_REGION", "us-east-1"),
 
-        # Embedding model (free, runs locally via HuggingFace)
+        # Embedding model -- now hosted by Pinecone (no local torch/RAM needed)
         "EMBEDDING_MODEL"  : os.environ.get(
             "EMBEDDING_MODEL",
-            "sentence-transformers/all-MiniLM-L6-v2"   # 384-dim, fast & free
+            "multilingual-e5-large"   # 1024-dim, runs on Pinecone's servers
         ),
+        "EMBEDDING_DIMENSION": int(os.environ.get("EMBEDDING_DIMENSION", 1024)),
 
         # Groq / LLM settings
-        "GROQ_MODEL"       : os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+        "GROQ_MODEL"       : os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant"),
 
         # Server settings (used when running locally)
-        "HOST"             : os.environ.get("HOST", "0.0.0.0"),
+        "HOST"             : os.environ.get("HOST", "127.0.0.1"),
         "PORT"             : int(os.environ.get("PORT", 8000)),
         "DEBUG"            : os.environ.get("DEBUG", "False").lower() == "true",
     }

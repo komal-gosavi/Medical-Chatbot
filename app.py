@@ -59,9 +59,9 @@ else:
 config = None
 try:
     config = load_config()
-    print("✓ Configuration loaded successfully")
+    print("Configuration loaded successfully")
 except ValueError as e:
-    print(f"✗ Configuration error: {e}")
+    print(f"Configuration error: {e}")
     print("  Please ensure PINECONE_API_KEY and GROQ_API_KEY are set in .env file")
 
 rag_chain_instance = None
@@ -164,7 +164,7 @@ async def health_check():
 # Startup message - no heavy operations here
 # The RAG chain will be initialized on first use (lazy loading)
 
-print("🚀 Medical Chatbot API initialized")
+print("Medical Chatbot API initialized")
 
 
 # ============================================================

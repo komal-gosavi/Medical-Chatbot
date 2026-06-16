@@ -110,7 +110,7 @@ Medical-Chatbot/
 
 Edit `src/config.py` to customize:
 - Embedding model (default: `sentence-transformers/all-MiniLM-L6-v2`)
-- Groq model (default: `llama-3.3-70b-versatile`)
+- Groq model (default: `llama-3.1-8b-instant`)
 - Pinecone index name (default: `medical-chatbot`)
 - Server settings (HOST, PORT, DEBUG)
 
@@ -145,7 +145,7 @@ pip install --upgrade langchain langchain-core langchain-community langchain-tex
 ### Groq Model Not Found
 Update to the latest Groq model in `src/config.py`:
 ```python
-"GROQ_MODEL": "llama-3.3-70b-versatile"
+"GROQ_MODEL": "llama-3.1-8b-instant"
 ```
 
 ### Pinecone Connection Issues

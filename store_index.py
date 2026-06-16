@@ -4,7 +4,7 @@ store_index.py
 Run this file ONCE to:
   1. Read all PDFs from the data/ folder
   2. Split them into chunks
-  3. Convert chunks to embeddings (free HuggingFace model)
+  3. Convert chunks to embeddings (Pinecone's FREE hosted model -- no torch needed)
   4. Upload embeddings to Pinecone
 
 You only need to run this again if you add new PDF files.
@@ -15,16 +15,11 @@ How to run:
 
 from dotenv import load_dotenv
 import os
-from src.helper import (
-    load_pdf_file,
-    filter_to_minimal_docs,
-    text_split,
-    download_hugging_face_embeddings,
-)
+from src.helper import load_pdf_file, filter_to_minimal_docs, text_split
+from src.pinecone_embeddings import PineconeHostedEmbeddings
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 
-# ── Load .env file ────────────────────────────────────────────
 load_dotenv()
 
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
@@ -34,48 +29,46 @@ if not PINECONE_API_KEY:
 
 os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
 
-# ── Step 1: Read PDFs ─────────────────────────────────────────
-print("\n📄 Step 1: Loading PDF files from data/ folder...")
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "multilingual-e5-large")
+EMBEDDING_DIMENSION = int(os.environ.get("EMBEDDING_DIMENSION", 1024))
+INDEX_NAME = os.environ.get("PINECONE_INDEX", "medical-chatbot")
+
+print("\nStep 1: Loading PDF files from data/ folder...")
 extracted_data = load_pdf_file(data="data/")
 
-# ── Step 2: Filter junk pages ─────────────────────────────────
-print("\n🧹 Step 2: Filtering blank/useless pages...")
+print("\nStep 2: Filtering blank/useless pages...")
 filter_data = filter_to_minimal_docs(extracted_data)
 
-# ── Step 3: Split into chunks ─────────────────────────────────
-print("\n✂️  Step 3: Splitting text into chunks...")
+print("\nStep 3: Splitting text into chunks...")
 text_chunks = text_split(filter_data)
 
-# ── Step 4: Load free embedding model ────────────────────────
-print("\n🤖 Step 4: Loading HuggingFace embedding model (free)...")
-embeddings = download_hugging_face_embeddings()
+print("\nStep 4: Setting up Pinecone hosted embeddings (no local model download)...")
+embeddings = PineconeHostedEmbeddings(api_key=PINECONE_API_KEY, model=EMBEDDING_MODEL)
 
-# ── Step 5: Connect to Pinecone ──────────────────────────────
-print("\n🌲 Step 5: Connecting to Pinecone...")
+print("\nStep 5: Connecting to Pinecone...")
 pc = Pinecone(api_key=PINECONE_API_KEY)
 
-INDEX_NAME = "medical-chatbot"   # ← change this name if you want
-
-# Create index only if it doesn't already exist
 if not pc.has_index(INDEX_NAME):
-    print(f"   Creating new Pinecone index '{INDEX_NAME}'...")
+    print(f"   Creating new Pinecone index '{INDEX_NAME}' (dimension={EMBEDDING_DIMENSION})...")
     pc.create_index(
         name=INDEX_NAME,
-        dimension=384,                       # must match all-MiniLM-L6-v2 output size
+        dimension=EMBEDDING_DIMENSION,   # must match multilingual-e5-large = 1024
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region="us-east-1"),
     )
-    print(f"   ✓ Index '{INDEX_NAME}' created")
+    print(f"   Index '{INDEX_NAME}' created")
 else:
-    print(f"   ✓ Index '{INDEX_NAME}' already exists — skipping creation")
+    print(f"   Index '{INDEX_NAME}' already exists -- skipping creation")
+    print(f"   NOTE: if this index was created earlier with dimension=384,")
+    print(f"   you must delete it in the Pinecone dashboard and re-run this script,")
+    print(f"   because multilingual-e5-large needs dimension=1024.")
 
-# ── Step 6: Upload embeddings ─────────────────────────────────
-print(f"\n⬆️  Step 6: Uploading {len(text_chunks)} chunks to Pinecone (this may take a few minutes)...")
+print(f"\nStep 6: Uploading {len(text_chunks)} chunks to Pinecone (this may take a few minutes)...")
 docsearch = PineconeVectorStore.from_documents(
     documents=text_chunks,
     index_name=INDEX_NAME,
     embedding=embeddings,
 )
 
-print("\n🎉 Done! Your medical data is now stored in Pinecone.")
+print("\nDone! Your medical data is now stored in Pinecone.")
 print("   Now run:  python app.py   to start the chatbot.\n")
